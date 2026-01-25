@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Overview</h2>
+    <span id="last-updated" class="text-muted small">Updating...</span>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card p-3">
+            <h6 class="text-muted">Total Queries (24h)</h6>
+            <div class="metric-value text-primary" id="total-queries">-</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3">
+            <h6 class="text-muted">Avg Latency (ms)</h6>
+            <div class="metric-value text-info" id="avg-latency">-</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3">
+            <h6 class="text-muted">Error Rate</h6>
+            <div class="metric-value text-danger" id="error-rate">-</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3">
+            <h6 class="text-muted">Total Docs</h6>
+            <div class="metric-value text-success" id="total-docs">-</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h5>Recent Activity</h5>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Event</th>
+                            <th>Status</th>
+                            <th>Latency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activity-table">
+                        <!-- Loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h5>System Status</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Azure AI
+                    <span class="badge bg-success rounded-pill">OK</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    MongoDB
+                    <span class="badge bg-success rounded-pill">OK</span>
+                </li>
+            </ul>
+            <p class="text-muted small mt-3">
+                System uptime: <span id="uptime">Unknown</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function updateStats() {
+        try {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+
+            document.getElementById('total-queries').innerText = data.metrics.total_queries_24h;
+            const latency = data.metrics.breakdown?.query?.avg_ms || 0;
+            document.getElementById('avg-latency').innerText = latency;
+            document.getElementById('error-rate').innerText = data.metrics.error_rate_24h + "%";
+            document.getElementById('total-docs').innerText = data.db_stats.total_sources;
+
+            const table = document.getElementById('activity-table');
+            table.innerHTML = "";
+            data.logs.slice(0, 8).forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${new Date(log.ts).toLocaleTimeString()}</td>
+                    <td>${log.event}</td>
+                    <td><span class="badge bg-${log.status === 'ok' ? 'success' : 'danger'}">${log.status}</span></td>
+                    <td>${Math.round(log.duration_ms)}ms</td>
+                `;
+                table.appendChild(tr);
+            });
+
+            document.getElementById('last-updated').innerText = "Last updated: " + new Date().toLocaleTimeString();
+        } catch (e) { console.error(e); }
+    }
+
+    updateStats();
+    setInterval(updateStats, 5000);
+</script>
+{% endblock %}

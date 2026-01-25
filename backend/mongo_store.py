@@ -56,22 +56,31 @@ class MongoVectorStore:
             print(f"Delete failed: {e}")
             raise
 
-    def list_sources(self, limit=50, skip=0) -> list[str]:
+    def list_sources(self) -> list[dict]:
         """
-        Returns a list of unique source filenames (pagination not natively supported by distinct, 
-        so we aggregate).
+        Returns a list of unique source filenames with chunk counts.
         """
         try:
             pipeline = [
-                {"$group": {"_id": "$source"}},
-                {"$sort": {"_id": 1}},
-                {"$skip": skip},
-                {"$limit": limit}
+                {"$group": {"_id": "$source", "count": {"$sum": 1}}},
+                {"$sort": {"_id": 1}}
             ]
             results = list(self.collection.aggregate(pipeline))
-            return [r["_id"] for r in results]
+            # Format: [{"name": "file.pdf", "chunks": 10}, ...]
+            return [{"name": r["_id"], "chunks": r["count"]} for r in results]
         except Exception as e:
             print(f"List sources failed: {e}")
+            return []
+
+    def get_preview(self, filename: str, limit=5) -> list[str]:
+        """
+        Returns a preview of text chunks for a given source.
+        """
+        try:
+            cursor = self.collection.find({"source": filename}, {"text": 1, "_id": 0}).limit(limit)
+            return [doc["text"] for doc in cursor]
+        except Exception as e:
+            print(f"Preview failed: {e}")
             return []
 
     def search(self, query_vector: list[float], limit=6) -> list[dict]:

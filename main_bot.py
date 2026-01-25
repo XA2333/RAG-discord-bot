@@ -55,18 +55,18 @@ async def on_message(message):
         content = message.content.replace(f'<@{bot.user.id}>', '').strip()
         if content:
             # Route to !ask logic
-            await _handle_ask(message.channel, content)
+            await _handle_ask(message.channel, content, message.author.id)
             return
 
     await bot.process_commands(message)
 
-async def _handle_ask(channel, question):
+async def _handle_ask(channel, question, user_id=None):
     if not rag_pipeline:
         await channel.send("⚠️ Bot is warming up.")
         return
 
     async with channel.typing():
-        response = await bot.loop.run_in_executor(None, rag_pipeline.answer_question, question)
+        response = await bot.loop.run_in_executor(None, rag_pipeline.answer_question, question, user_id)
     
     if len(response) > 2000:
         for i in range(0, len(response), 2000):
@@ -76,7 +76,7 @@ async def _handle_ask(channel, question):
 
 @bot.command(name='ask')
 async def ask(ctx, *, question):
-    await _handle_ask(ctx.channel, question)
+    await _handle_ask(ctx.channel, question, ctx.author.id)
 
 @bot.command(name='help')
 async def help_command(ctx):

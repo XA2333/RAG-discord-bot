@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Documents</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        📤 Upload PDF
+    </button>
+</div>
+
+<div class="card p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Chunks</th>
+                    <th>Preview</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="docs-list">
+                <!-- Loaded via JS -->
+                <tr>
+                    <td colspan="4" class="text-center">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select PDF</label>
+                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="progress mb-3 d-none" id="uploadProgress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">
+                            Processing...</div>
+                    </div>
+                    <div id="uploadStatus" class="alert d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="uploadFile()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <pre id="previewContent" style="white-space: pre-wrap; font-size: 0.9em;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadDocs() {
+        const res = await fetch('/api/docs/list');
+        const docs = await res.json();
+        const tbody = document.getElementById('docs-list');
+        tbody.innerHTML = '';
+
+        if (docs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No documents found.</td></tr>';
+            return;
+        }
+
+        docs.forEach(doc => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${doc.name}</strong></td>
+                <td><span class="badge bg-secondary">${doc.chunks} chunks</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="previewDoc('${doc.name}')">👁️ Preview</button>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteDoc('${doc.name}')">🗑️ Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function uploadFile() {
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+        const pBar = document.getElementById('uploadProgress');
+        const status = document.getElementById('uploadStatus');
+
+        pBar.classList.remove('d-none');
+        status.classList.add('d-none');
+
+        try {
+            const res = await fetch('/api/upload/pdf', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            status.classList.remove('d-none');
+            pBar.classList.add('d-none');
+
+            if (res.ok) {
+                status.className = 'alert alert-success';
+                status.innerText = 'Upload successful!';
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                    loadDocs();
+                    form.reset();
+                    status.classList.add('d-none');
+                }, 1000);
+            } else {
+                status.className = 'alert alert-danger';
+                status.innerText = data.error || 'Upload failed.';
+            }
+        } catch (e) {
+            console.error(e);
+            pBar.classList.add('d-none');
+            status.classList.remove('d-none');
+            status.className = 'alert alert-danger';
+            status.innerText = "Network Error";
+        }
+    }
+
+    async function deleteDoc(filename) {
+        if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
+
+        try {
+            const res = await fetch('/api/delete/pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename })
+            });
+            if (res.ok) loadDocs();
+            else alert("Failed to delete.");
+        } catch (e) { console.error(e); }
+    }
+
+    async function previewDoc(filename) {
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        document.getElementById('previewContent').innerText = "Loading...";
+        modal.show();
+
+        try {
+            const res = await fetch(`/api/docs/preview?source=${encodeURIComponent(filename)}`);
+            const data = await res.json();
+            document.getElementById('previewContent').innerText = data.content;
+        } catch (e) {
+            document.getElementById('previewContent').innerText = "Error loading preview.";
+        }
+    }
+
+    loadDocs();
+</script>
+{% endblock %}

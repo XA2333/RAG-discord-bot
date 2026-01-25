@@ -30,11 +30,14 @@ class ObservabilityLogger:
             # Index for faster dashboard queries
             self.collection.create_index([("ts", -1)])
             self.collection.create_index("event")
+            self.collection.create_index("hashed_user_id")
+            self.collection.create_index("status")
         except Exception as e:
             print(f"⚠️ Observability init failed: {e}")
             self.collection = None
 
-    def log_event(self, event_type: str, status: str, duration_ms: float = 0, error_type: str = None, meta: dict = None):
+    def log_event(self, event_type: str, status: str, duration_ms: float = 0, error_type: str = None, 
+                  meta: dict = None, question_snip: str = None, answer_snip: str = None, hashed_user_id: str = None):
         if self.collection is None:
             return
 
@@ -46,6 +49,9 @@ class ObservabilityLogger:
                 "duration_ms": duration_ms,
                 "error_type": error_type,
                 "meta": meta or {},
+                "question_snip": question_snip,
+                "answer_snip": answer_snip,
+                "hashed_user_id": hashed_user_id,
                 "correlation_id": str(uuid.uuid4())
             }
             self.collection.insert_one(entry)
@@ -107,12 +113,21 @@ class ObservabilityLogger:
             print(f"Metrics aggregation failed: {e}")
             return {}
     
-    def get_recent_events(self, limit=50):
+    def get_logs(self, limit=50, status=None, event_type=None) -> list[dict]:
+        """
+        Fetch logs with optional filtering.
+        """
         if self.collection is None:
             return []
         
+        query = {}
+        if status:
+            query["status"] = status
+        if event_type:
+            query["event"] = event_type
+            
         try:
-            cursor = self.collection.find({}, {"_id": 0}).sort("ts", -1).limit(limit)
+            cursor = self.collection.find(query, {"_id": 0}).sort("ts", -1).limit(limit)
             return list(cursor)
         except Exception as e:
             return []

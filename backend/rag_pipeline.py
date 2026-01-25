@@ -2,6 +2,12 @@ import time
 from backend.azure_client import AzureAIClient
 from backend.mongo_store import MongoVectorStore
 from backend.observability import ObservabilityLogger
+import hashlib
+
+def hash_user(user_id: str) -> str:
+    if not user_id:
+        return "anon"
+    return hashlib.sha256(str(user_id).encode()).hexdigest()[:12]
 
 class RAGPipeline:
     def __init__(self):
@@ -9,9 +15,13 @@ class RAGPipeline:
         self.store = MongoVectorStore()
         self.logger = ObservabilityLogger()
 
-    def answer_question(self, question: str) -> str:
+    def answer_question(self, question: str, user_id: str = None) -> str:
         t0 = time.time()
         start_time = t0
+        hashed_id = hash_user(user_id)
+        
+        # Sanitize for logging (truncate to 50 chars)
+        q_snip = (question[:47] + "...") if len(question) > 50 else question
         
         try:
             # 1. Embed
@@ -34,7 +44,9 @@ class RAGPipeline:
             context_docs = [r for r in results if r.get('score', 0) > 0.5]
             
             if not context_docs:
-                self.logger.log_event("query", "ok", (time.time() - t0)*1000, meta={"result": "no_context"})
+                self.logger.log_event("query", "ok", (time.time() - t0)*1000, 
+                                      meta={"result": "no_context"},
+                                      question_snip=q_snip, hashed_user_id=hashed_id)
                 return "The answer was not found in the documents."
             
             # 4. Format Context & Citations
@@ -68,16 +80,21 @@ class RAGPipeline:
             total_dur = (time.time() - t0) * 1000
             
             # Log Success
+            a_snip = (answer[:47] + "...") if len(answer) > 50 else answer
+            
             self.logger.log_event("query", "ok", total_dur, meta={
                 "embed_ms": round(dur_embed),
                 "search_ms": round(dur_search),
                 "chat_ms": round(dur_chat),
                 "sources_count": len(context_docs)
-            })
+            }, question_snip=q_snip, answer_snip=a_snip, hashed_user_id=hashed_id)
 
             return f"{answer}\n\n**Sources:** {citation_str}"
 
         except Exception as e:
             total_dur = (time.time() - t0) * 1000
-            self.logger.log_event("query", "fail", total_dur, error_type=type(e).__name__, meta={"error_msg": str(e)})
+            self.logger.log_event("query", "fail", total_dur, error_type=type(e).__name__, 
+                                  meta={"error_msg": str(e)},
+                                  question_snip=q_snip if 'q_snip' in locals() else None,
+                                  hashed_user_id=hashed_id if 'hashed_id' in locals() else None)
             return f"Error encountered: {str(e)}"

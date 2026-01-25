@@ -43,15 +43,25 @@ Open a **second** terminal and run:
 ```
 
 Access the dashboard at: [http://localhost:5000](http://localhost:5000)
+(Open access, no login required)
 
-## Dashboard Metrics
+## Web Dashboard Features
 
-The dashboard auto-refreshes every 5 seconds and displays:
+- **Overview**: Real-time stats, latency charts, and system status.
+- **Documents**:
+  - 📤 **Upload**: Drag & drop PDF upload via web UI.
+  - 🗑️ **Management**: View chunk counts and delete files.
+  - 👁️ **Preview**: Click "Preview" to see extracted text chunks.
+- **User Logs**:
+  - View user queries with **hashed User IDs** (Privacy).
+  - See truncated Questions & Answers.
+  - Filter by Status (OK/Fail).
 
-- **Total Queries (24h)**: Volume of questions asked.
-- **Avg Latency**: Performance of the RAG pipeline.
-- **Error Rate**: Percentage of failed requests.
-- **Recent Events**: Live log of queries (status only, no content) and errors.
+## API Endpoints (Localhost Only)
+
+- `POST /api/upload/pdf`: Multipart file upload.
+- `POST /api/delete/pdf`: JSON `{ "filename": "x.pdf" }`.
+- `GET /api/logs`: Query logs.
 
 ## Admin Commands
 
