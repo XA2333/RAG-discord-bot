@@ -1,18 +1,28 @@
+import time
 from backend.azure_client import AzureAIClient
 from backend.mongo_store import MongoVectorStore
+from backend.observability import ObservabilityLogger
 
 class RAGPipeline:
     def __init__(self):
         self.azure = AzureAIClient()
         self.store = MongoVectorStore()
+        self.logger = ObservabilityLogger()
 
     def answer_question(self, question: str) -> str:
+        t0 = time.time()
+        start_time = t0
+        
         try:
             # 1. Embed
+            t_embed_start = time.time()
             query_vec = self.azure.generate_embeddings([question])[0]
+            dur_embed = (time.time() - t_embed_start) * 1000
             
             # 2. Search
+            t_search_start = time.time()
             results = self.store.search(query_vec, limit=6)
+            dur_search = (time.time() - t_search_start) * 1000
             
             # DEBUG: Print scores to console
             print(f"Query: {question}")
@@ -24,6 +34,7 @@ class RAGPipeline:
             context_docs = [r for r in results if r.get('score', 0) > 0.5]
             
             if not context_docs:
+                self.logger.log_event("query", "ok", (time.time() - t0)*1000, meta={"result": "no_context"})
                 return "The answer was not found in the documents."
             
             # 4. Format Context & Citations
@@ -32,14 +43,12 @@ class RAGPipeline:
             citations = []
             
             for doc in context_docs:
-                # Deduplicate roughly by page to avoid redundant text
                 source_identifier = f"{doc['source']}:p{doc['chunk_id'].split(':p')[1].split(':')[0]}"
                 
                 if source_identifier not in seen_source_pages:
                     seen_source_pages.add(source_identifier)
                     context_text_list.append(f"Content from {doc['source']}:\n{doc['text']}")
                     
-                # Always add citation for transparency
                 citations.append(f"({doc['source']}#{doc['chunk_id'].split(':c')[-1]})")
 
             full_context = "\n\n".join(context_text_list)
@@ -52,9 +61,23 @@ class RAGPipeline:
             ]
             
             # 6. Generate
+            t_chat_start = time.time()
             answer = self.azure.chat_completion(messages)
+            dur_chat = (time.time() - t_chat_start) * 1000
             
+            total_dur = (time.time() - t0) * 1000
+            
+            # Log Success
+            self.logger.log_event("query", "ok", total_dur, meta={
+                "embed_ms": round(dur_embed),
+                "search_ms": round(dur_search),
+                "chat_ms": round(dur_chat),
+                "sources_count": len(context_docs)
+            })
+
             return f"{answer}\n\n**Sources:** {citation_str}"
 
         except Exception as e:
+            total_dur = (time.time() - t0) * 1000
+            self.logger.log_event("query", "fail", total_dur, error_type=type(e).__name__, meta={"error_msg": str(e)})
             return f"Error encountered: {str(e)}"
