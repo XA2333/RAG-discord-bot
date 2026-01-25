@@ -1,9 +1,6 @@
-discord.py
-python-dotenv
-langchain
-langchain-community
-langchain-huggingface
-langchain-openai
-chromadb
-pypdf
-tiktoken
+discord.py>=2.3.0
+pymongo[srv]>=4.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pypdf>=4.0.0
+certifi>=2024.0.0
