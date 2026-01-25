@@ -44,7 +44,7 @@ class MongoVectorStore:
             print(f"   - Bulk write failed: {e}")
             raise
 
-    def delete_document(self, filename: str) -> int:
+    def delete_by_source(self, filename: str) -> int:
         """
         Deletes all chunks associated with a source filename.
         Returns count of deleted chunks.
@@ -56,14 +56,22 @@ class MongoVectorStore:
             print(f"Delete failed: {e}")
             raise
 
-    def list_documents(self) -> list[str]:
+    def list_sources(self, limit=50, skip=0) -> list[str]:
         """
-        Returns a list of unique source filenames.
+        Returns a list of unique source filenames (pagination not natively supported by distinct, 
+        so we aggregate).
         """
         try:
-            return self.collection.distinct("source")
+            pipeline = [
+                {"$group": {"_id": "$source"}},
+                {"$sort": {"_id": 1}},
+                {"$skip": skip},
+                {"$limit": limit}
+            ]
+            results = list(self.collection.aggregate(pipeline))
+            return [r["_id"] for r in results]
         except Exception as e:
-            print(f"List documents failed: {e}")
+            print(f"List sources failed: {e}")
             return []
 
     def search(self, query_vector: list[float], limit=6) -> list[dict]:

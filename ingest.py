@@ -13,9 +13,7 @@ def run_ingestion():
     
     for pdf_path in pdf_files:
         filename = os.path.basename(pdf_path)
-        print(f"\nProcessing {filename}...")
-        count = service.process_local_file(pdf_path)
-        print(f"✅ Ingested {count} chunks.")
+        service.ingest_file_sync(pdf_path)
 
 if __name__ == "__main__":
     run_ingestion()

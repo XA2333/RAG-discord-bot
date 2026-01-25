@@ -14,9 +14,14 @@ class RAGPipeline:
             # 2. Search
             results = self.store.search(query_vec, limit=6)
             
+            # DEBUG: Print scores to console
+            print(f"Query: {question}")
+            for r in results:
+                print(f" - Hit: {r['chunk_id']} | Score: {r.get('score', 0):.4f}")
+
             # 3. Filter
-            # Acceptable score? Let's say 0.65
-            context_docs = [r for r in results if r.get('score', 0) > 0.65]
+            # Lowered threshold to 0.5 for debugging (was 0.65)
+            context_docs = [r for r in results if r.get('score', 0) > 0.5]
             
             if not context_docs:
                 return "The answer was not found in the documents."

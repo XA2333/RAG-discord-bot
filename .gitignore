@@ -5,3 +5,6 @@ __pycache__/
 venv/
 chroma_db/
 error_log.txt
+.DS_Store
+*.log
+data/
