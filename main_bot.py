@@ -152,13 +152,18 @@ async def sources(ctx):
         await ctx.send(f"❌ Error: {e}")
 
 # Error Handling
-@upload.error
-@delete.error
-async def admin_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send(f"❓ Unknown command. Type `!help` to see available commands.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f"⚠️ Missing argument: `{error.param.name}`. Please check the command format.")
+    elif isinstance(error, commands.MissingPermissions):
         await ctx.send("⛔ You do not have permission to run this command.")
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send(f"⚠️ Invalid argument: {str(error)}")
     else:
-        await ctx.send(f"⚠️ Error: {str(error)}")
+        await ctx.send(f"❌ Error: {str(error)}")
 
 if __name__ == "__main__":
     if not TOKEN:

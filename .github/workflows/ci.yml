@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: Create mock .env file
+      run: |
+        echo "DISCORD_TOKEN=test_token" > .env
+        echo "AZURE_AI_ENDPOINT=https://test.azure.com/models" >> .env
+        echo "AZURE_AI_KEY=test_key" >> .env
+        echo "MONGO_URI=mongodb://localhost:27017" >> .env
+        echo "RAG_THRESHOLD=0.5" >> .env
+        echo "RAG_MAX_HISTORY=3" >> .env
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --tb=short
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+    
+    - name: Lint with flake8
+      run: |
+        # Stop on syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,venv,__pycache__
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics --exclude=.venv,venv,__pycache__
