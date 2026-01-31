@@ -35,13 +35,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Upload Document</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="uploadForm">
                     <div class="mb-3">
-                        <label class="form-label">Select PDF</label>
-                        <input type="file" class="form-control" name="file" accept=".pdf" required>
+                        <label class="form-label" for="pdfFile">Select PDF</label>
+                        <input type="file" class="form-control" name="file" id="pdfFile" accept=".pdf" required>
                     </div>
                     <div class="progress mb-3 d-none" id="uploadProgress">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">
@@ -64,7 +64,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Document Preview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body bg-light">
                 <pre id="previewContent" style="white-space: pre-wrap; font-size: 0.9em;"></pre>
