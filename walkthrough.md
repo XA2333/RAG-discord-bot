@@ -24,7 +24,7 @@ Ensure you have the correct `.env` file with:
 - `MONGO_URI`
 - `DISCORD_TOKEN`
 
-### 2. Running the Bot
+### 2. Running the Bot & Dashboard
 
 Open a terminal and run:
 
@@ -32,22 +32,23 @@ Open a terminal and run:
 .\run_bot.ps1
 ```
 
-This script automatically runs a healthcheck before starting the bot.
+This script will:
 
-### 3. Running the Dashboard
+1. Run a system Healthcheck.
+2. Start the **Monitoring Dashboard** in a background window.
+3. Automatically open `http://localhost:5000` in your browser.
+4. Start the **Discord Bot** in the current terminal.
 
-Open a **second** terminal and run:
-
-```powershell
-.\run_monitor.ps1
-```
+(To stop, press Ctrl+C in the main terminal. The dashboard window can be closed separately).
 
 Access the dashboard at: [http://localhost:5000](http://localhost:5000)
 (Open access, no login required)
 
 ## Web Dashboard Features
 
-- **Overview**: Real-time stats, latency charts, and system status.
+- **Overview**:
+  - Real-time stats, latency charts, and system status.
+  - **Token Usage**: Track Total Tokens (24h) and Avg/Request to monitor costs.
 - **Documents**:
   - 📤 **Upload**: Drag & drop PDF upload via web UI.
   - 🗑️ **Management**: View chunk counts and delete files.
@@ -56,6 +57,10 @@ Access the dashboard at: [http://localhost:5000](http://localhost:5000)
   - View user queries with **hashed User IDs** (Privacy).
   - See truncated Questions & Answers.
   - Filter by Status (OK/Fail).
+  - **Details**: Click "Details" to view full question/answer and metadata.
+- **Settings**:
+  - View and Update API Keys/Tokens.
+  - Requires application restart to apply changes.
 
 ## API Endpoints (Localhost Only)
 

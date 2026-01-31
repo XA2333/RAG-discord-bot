@@ -24,6 +24,8 @@ EMBED_MODEL=text-embedding-3-small
 MAX_UPLOAD_MB=10
 ```
 
+> ⚠️ **Security**: The `.env` file is in `.gitignore` and will NOT be pushed to GitHub.
+
 ### 3. MongoDB Setup
 
 Create a **Search Index** on `rag_db.chunks`:
@@ -58,26 +60,29 @@ pip install -r requirements.txt
 
 ### 5. Running
 
-We provide PowerShell helpers to ensure the correct environment:
+#### Option A: Easy Launchers (Recommended)
 
-**A. Healthcheck (Run First)**
-Validates connections and dimension match.
+| Script | Description |
+|--------|-------------|
+| `start.bat` | Start the Discord Bot (double-click) |
+| `start_db.bat` | Start the Monitoring Dashboard (double-click) |
+
+#### Option B: PowerShell Scripts
 
 ```powershell
-.\run_healthcheck.ps1
+.\run_healthcheck.ps1   # Validate connections
+.\run_ingest.ps1        # Load PDFs from data/ folder
+.\run_bot.ps1           # Start bot
+.\run_monitor.ps1       # Start dashboard
 ```
 
-**B. Ingestion (Load Data)**
-Loads PDFs from `data/` folder.
+#### Option C: Direct Python
 
 ```powershell
-.\run_ingest.ps1
-```
-
-**C. Start Bot**
-
-```powershell
-.\run_bot.ps1
+python healthcheck.py      # Validate
+python ingest.py           # Ingest PDFs
+python main_bot.py         # Start bot
+python backend/monitor_server.py  # Start dashboard
 ```
 
 ## 🤖 Bot Commands
@@ -86,14 +91,25 @@ Loads PDFs from `data/` folder.
 | :--- | :--- |
 | `!ask <query>` | Ask a question based on uploaded docs. |
 | `@Bot <query>` | Mention the bot to ask quickly. |
-| `!upload` | **(Admin)** Attach a PDF to upload it instantly. |
-| `!delete <name>` | **(Admin)** Delete a document (e.g., `!delete report.pdf`). |
+| `!upload` | Attach a PDF to upload it to the knowledge base. |
+| `!delete <name>` | Delete a document (e.g., `!delete report.pdf`). |
 | `!sources` | List all documents in the database. |
-| `!help` | Show an interactive command button. |
+| `!help` | Show an interactive command menu. |
+
+## 🖥️ Monitoring Dashboard
+
+Access the web dashboard at `http://localhost:5000` after running `start_db.bat`.
+
+Features:
+
+- View query logs and statistics
+- Upload/delete documents
+- Manage settings
 
 ## 🛠️ Tech Stack
 
 - **Framework**: `discord.py` (No LangChain/LlamaIndex)
 - **Client**: Raw `requests` to Azure AI Foundry REST API
 - **DB**: `pymongo` with Atlas `$vectorSearch`
+- **Dashboard**: Flask
 - **Safety**: `<think>` tag suppression, rate limits, size limits.

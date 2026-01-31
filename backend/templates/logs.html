@@ -61,12 +61,45 @@
                 <td>${log.event}</td>
                 <td><span class="badge bg-${log.status === 'ok' ? 'success' : 'danger'}">${log.status}</span></td>
                 <td>${Math.round(log.duration_ms)}ms</td>
-                <td>${details}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick='showDetails(${JSON.stringify(log)})'>Details</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
+    function showDetails(log) {
+        const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+        const content = document.getElementById('detailsContent');
+
+        let html = `<h6>Event Metadata</h6><pre>${JSON.stringify(log.meta, null, 2)}</pre>`;
+
+        if (log.meta?.full_question) {
+            html = `<h6>Question</h6><div class="alert alert-primary">${log.meta.full_question}</div>` + html;
+        }
+        if (log.meta?.full_answer) {
+            html = `<h6>Answer</h6><div class="alert alert-success" style="white-space: pre-wrap;">${log.meta.full_answer}</div>` + html;
+        }
+
+        content.innerHTML = html;
+        modal.show();
+    }
+
     loadLogs();
 </script>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

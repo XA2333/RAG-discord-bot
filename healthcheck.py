@@ -33,7 +33,7 @@ def run_healthcheck():
             {"role": "system", "content": "Return ONLY the exact string: ok"},
             {"role": "user", "content": "hello"}
         ]
-        response = azure.chat_completion(messages)
+        response, _ = azure.chat_completion(messages)
         print(f"   Response (Raw): '{response}'")
         
         # Already cleaned by client, but double check logic here implies we trust the client

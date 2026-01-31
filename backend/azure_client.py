@@ -70,11 +70,12 @@ class AzureAIClient:
             response = requests.post(url, headers=self.headers, json=payload, timeout=60)
             response.raise_for_status()
             data = response.json()
-            data = response.json()
             content = data["choices"][0]["message"]["content"]
+            usage = data.get("usage", {})
+            
             # Clean DeepSeek <think> tags
             clean_content = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL).strip()
-            return clean_content
+            return clean_content, usage
         except requests.exceptions.RequestException as e:
             print(f"Azure Chat Request Failed: {e}")
             if hasattr(e, 'response') and e.response:

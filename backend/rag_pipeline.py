@@ -45,7 +45,7 @@ class RAGPipeline:
             
             if not context_docs:
                 self.logger.log_event("query", "ok", (time.time() - t0)*1000, 
-                                      meta={"result": "no_context"},
+                                      meta={"result": "no_context", "full_question": question},
                                       question_snip=q_snip, hashed_user_id=hashed_id)
                 return "The answer was not found in the documents."
             
@@ -74,7 +74,7 @@ class RAGPipeline:
             
             # 6. Generate
             t_chat_start = time.time()
-            answer = self.azure.chat_completion(messages)
+            answer, usage = self.azure.chat_completion(messages)
             dur_chat = (time.time() - t_chat_start) * 1000
             
             total_dur = (time.time() - t0) * 1000
@@ -86,7 +86,11 @@ class RAGPipeline:
                 "embed_ms": round(dur_embed),
                 "search_ms": round(dur_search),
                 "chat_ms": round(dur_chat),
-                "sources_count": len(context_docs)
+                "sources_count": len(context_docs),
+                "full_question": question,
+                "full_answer": answer,
+                "citations": citations,
+                "usage": usage
             }, question_snip=q_snip, answer_snip=a_snip, hashed_user_id=hashed_id)
 
             return f"{answer}\n\n**Sources:** {citation_str}"
@@ -94,7 +98,7 @@ class RAGPipeline:
         except Exception as e:
             total_dur = (time.time() - t0) * 1000
             self.logger.log_event("query", "fail", total_dur, error_type=type(e).__name__, 
-                                  meta={"error_msg": str(e)},
+                                  meta={"error_msg": str(e), "full_question": question},
                                   question_snip=q_snip if 'q_snip' in locals() else None,
                                   hashed_user_id=hashed_id if 'hashed_id' in locals() else None)
             return f"Error encountered: {str(e)}"

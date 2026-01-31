@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2>Settings</h2>
+<div class="card p-4">
+    <form id="settingsForm">
+        <div class="mb-3">
+            <label class="form-label" for="AZURE_AI_ENDPOINT">Azure AI Endpoint</label>
+            <input type="text" class="form-control" name="AZURE_AI_ENDPOINT" id="AZURE_AI_ENDPOINT"
+                placeholder="https://...">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="AZURE_AI_KEY">Azure AI Key</label>
+            <input type="password" class="form-control" name="AZURE_AI_KEY" id="AZURE_AI_KEY" placeholder="Key...">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="MONGO_URI">MongoDB URI</label>
+            <input type="password" class="form-control" name="MONGO_URI" id="MONGO_URI" placeholder="mongodb+srv://...">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="DISCORD_TOKEN">Discord Token</label>
+            <input type="password" class="form-control" name="DISCORD_TOKEN" id="DISCORD_TOKEN" placeholder="Token...">
+        </div>
+        <div class="alert alert-warning">
+            ⚠️ <strong>Warning:</strong> Updating these settings will rewrite the <code>.env</code> file.
+            You MUST restart the application manually for changes to take effect.
+        </div>
+        <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+        <div id="statusMsg" class="mt-3"></div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadSettings() {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            for (const [key, value] of Object.entries(data)) {
+                const input = document.getElementById(key);
+                if (input) input.value = value;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function saveSettings() {
+        const form = document.getElementById('settingsForm');
+        const formData = new FormData(form);
+        const json = Object.fromEntries(formData.entries());
+
+        try {
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(json)
+            });
+            const data = await res.json();
+            const msg = document.getElementById('statusMsg');
+
+            if (res.ok) {
+                msg.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            } else {
+                msg.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            }
+        } catch (e) {
+            alert("Failed to save settings.");
+        }
+    }
+
+    loadSettings();
+</script>
+{% endblock %}

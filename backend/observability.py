@@ -72,7 +72,9 @@ class ObservabilityLogger:
                 "_id": "$event",
                 "count": {"$sum": 1},
                 "avg_duration": {"$avg": "$duration_ms"},
-                "errors": {"$sum": {"$cond": [{"$eq": ["$status", "fail"]}, 1, 0]}}
+                "errors": {"$sum": {"$cond": [{"$eq": ["$status", "fail"]}, 1, 0]}},
+                "total_tokens": {"$sum": {"$ifNull": ["$meta.usage.total_tokens", 0]}},
+                "completion_tokens": {"$sum": {"$ifNull": ["$meta.usage.completion_tokens", 0]}}
             }}
         ]
         
@@ -107,6 +109,16 @@ class ObservabilityLogger:
 
             if total_ops > 0:
                 metrics["error_rate_24h"] = round((total_errors / total_ops) * 100, 1)
+
+            # Calculate token velocity (approximate)
+            # We don't have exact time windows for every request in this loop, but we can Average it
+            total_tokens = sum(d.get("total_tokens", 0) for d in results if d["_id"] == "query")
+            completion_tokens = sum(d.get("completion_tokens", 0) for d in results if d["_id"] == "query")
+            
+            metrics["token_stats"] = {
+                "total_24h": total_tokens,
+                "completion_24h": completion_tokens
+            }
 
             return metrics
         except Exception as e:

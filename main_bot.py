@@ -85,7 +85,6 @@ async def help_command(ctx):
     await ctx.send(embed=embed, view=view)
 
 @bot.command(name='upload')
-@commands.has_permissions(administrator=True)
 async def upload(ctx):
     if not ctx.message.attachments:
         await ctx.send("❌ Please attach a PDF file.")
@@ -129,7 +128,6 @@ async def upload(ctx):
         await status_msg.edit(content=f"❌ Ingestion Failed: {str(e)}")
 
 @bot.command(name='delete')
-@commands.has_permissions(administrator=True)
 async def delete(ctx, filename: str):
     msg = await ctx.send(f"🗑️ Deleting `{filename}`...")
     try:

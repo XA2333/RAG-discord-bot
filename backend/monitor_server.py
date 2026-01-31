@@ -33,6 +33,10 @@ def documents():
 def logs():
     return render_template('logs.html', active_page='logs')
 
+@app.route('/settings')
+def settings():
+    return render_template('settings.html', active_page='settings')
+
 # --- API ENDPOINTS ---
 
 @app.route('/api/stats')
@@ -106,6 +110,58 @@ def delete_pdf():
         return jsonify({"message": "Deleted", "chunks_removed": count})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+def manage_settings():
+    ENV_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
+    KEYS_TO_MANAGE = ["AZURE_AI_ENDPOINT", "AZURE_AI_KEY", "MONGO_URI", "DISCORD_TOKEN"]
+
+    if request.method == 'GET':
+        # Read .env manually to assume latest values on disk
+        current_vals = {}
+        if os.path.exists(ENV_PATH):
+            with open(ENV_PATH, 'r') as f:
+                for line in f:
+                    if '=' in line:
+                        k, v = line.strip().split('=', 1)
+                        if k in KEYS_TO_MANAGE:
+                            current_vals[k] = v
+        return jsonify(current_vals)
+
+    if request.method == 'POST':
+        data = request.json
+        new_lines = []
+        
+        # Read existing
+        if os.path.exists(ENV_PATH):
+            with open(ENV_PATH, 'r') as f:
+                lines = f.readlines()
+        else:
+            lines = []
+
+        # Update or Append
+        updated_keys = set()
+        for line in lines:
+            key_part = line.split('=')[0].strip()
+            if key_part in KEYS_TO_MANAGE and key_part in data:
+                new_lines.append(f"{key_part}={data[key_part]}\n")
+                updated_keys.add(key_part)
+            else:
+                new_lines.append(line)
+        
+        # Append missing keys
+        for k in KEYS_TO_MANAGE:
+            if k in data and k not in updated_keys:
+                new_lines.append(f"{k}={data[k]}\n")
+
+        # Write back
+        start_marker = "# --- AUTO MANAGED SETTINGS ---\n"
+        final_content = "".join(new_lines)
+        
+        with open(ENV_PATH, 'w') as f:
+            f.write(final_content)
+            
+        return jsonify({"message": "Settings saved to .env. Please RESTART the application."})
 
 if __name__ == "__main__":
     print(f"🚀 Monitor running on http://localhost:5000 (Open Access)")
